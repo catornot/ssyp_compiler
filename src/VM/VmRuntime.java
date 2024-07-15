@@ -98,6 +98,8 @@ public class VmRuntime {
         this.currentInstruction += offset;
 
         assert Integer.signum(this.currentInstruction) == 1 && this.currentInstruction < this.currentInstructions.size();
+
+        this.currentInstruction--; // TODO: check for correctness
     }
 
     public String getCurrentFunctionName() {

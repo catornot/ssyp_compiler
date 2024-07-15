@@ -16,7 +16,7 @@ public class BytecodeFile {
         functions = new HashMap<>();
         BytecodeLines = new ArrayList<>();
     }
-    public void init() {
+    void init() {
         try {
             File file = new File(this.filename);
             if (file.createNewFile()) {
@@ -31,14 +31,14 @@ public class BytecodeFile {
     public void add_func(String func_name) {
         functions.put(func_name, functions.size());
         this.lastFunction = func_name;
-        BytecodeLines.add(func_name + ":\n");
+        BytecodeLines.add(func_name + ": ");
 
     }
 
     public void add_instructions(BytecodeInstruction instruction) {
         int line = functions.get(this.lastFunction);
         String last_str = BytecodeLines.get(line);
-        BytecodeLines.set(line, last_str + instruction.toString() + "\n");
+        BytecodeLines.set(line, last_str + instruction.toString() + " ");
     }
 
     public void add_instructions_with_name(String func_name, BytecodeInstruction instruction) {

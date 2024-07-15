@@ -77,7 +77,7 @@ public class VmRuntime {
     }
 
     public void returnWith(int obj) {
-        if (this.stackAt(1) == this.endInstruction || this.callStack.size() == 1) {
+        if (this.stackAt(1) == this.endInstruction) {
             this.currentInstruction = this.currentInstructions.size();
             this.stackBase = this.stack.size() - 1;
 

@@ -1,6 +1,8 @@
 package Translator;
 
-import Parsing.*;
+import Parsing.Either;
+import Parsing.Function;
+import Parsing.Instruction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,60 +10,61 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 public class Translator {
-    public static BytecodeFile translate(Function[] functions, BytecodeFile file) {
+    private static BytecodeFile translate(Function[] functions, BytecodeFile file) {
         for (Function func : functions) {
             generateFunction(func, file);
         }
-
-        file.add_func("print");
-        file.add_instructions(new Extern());
-        file.add_instructions(new Return(0));
 
         return file;
     }
 
     private static void generateFunction(Function func, BytecodeFile file) {
         ArrayList<String> virtualStack = new ArrayList<>();
-        virtualStack.addAll(Arrays.stream(func.arguments()).map(Variable::name).toList());
-        virtualStack.addAll(Arrays.stream(func.locals()).map(Variable::name).toList());
+        virtualStack.addAll(Arrays.stream(func.arguments).map(arg -> arg.name).toList());
+        virtualStack.addAll(Arrays.stream(func.locals).map(local -> local.name).toList());
 
-        file.add_func(func.name());
+        file.add_func(func.name);
 
-        for (Instruction ins : func.instructions()) {
+        for (Instruction ins : func.instructions) {
             switch (ins.type()) {
-                case ADD -> file.add_instructions(
-                        new Add(getVarAddress(ins, 0, virtualStack, file),
-                                getVarAddress(ins, 1, virtualStack, file),
-                                getVarAddress(ins, 2, virtualStack, file))
-                );
+                case ADD -> {
+                    file.add_instructions(
+                            new Add(getVarAddress(ins, 0, virtualStack, file),
+                                    getVarAddress(ins, 1, virtualStack, file),
+                                    getVarAddress(ins, 2, virtualStack, file))
+                    );
 
-
-                case SUB -> file.add_instructions(
-                        new Sub(getVarAddress(ins, 0, virtualStack, file),
-                                getVarAddress(ins, 1, virtualStack, file),
-                                getVarAddress(ins, 2, virtualStack, file))
-                );
-
-                case DIV -> file.add_instructions(
-                        new Div(getVarAddress(ins, 0, virtualStack, file),
-                                getVarAddress(ins, 1, virtualStack, file),
-                                getVarAddress(ins, 2, virtualStack, file))
-                );
-
-                case MUL -> file.add_instructions(
-                        new Mul(getVarAddress(ins, 0, virtualStack, file),
-                                getVarAddress(ins, 1, virtualStack, file),
-                                getVarAddress(ins, 2, virtualStack, file))
-                );
-
+                }
+                case SUB -> {
+                    file.add_instructions(
+                            new Sub(getVarAddress(ins, 0, virtualStack, file),
+                                    getVarAddress(ins, 1, virtualStack, file),
+                                    getVarAddress(ins, 2, virtualStack, file))
+                    );
+                }
+                case DIV -> {
+                    file.add_instructions(
+                            new Div(getVarAddress(ins, 0, virtualStack, file),
+                                    getVarAddress(ins, 1, virtualStack, file),
+                                    getVarAddress(ins, 2, virtualStack, file))
+                    );
+                }
+                case MUL -> {
+                    file.add_instructions(
+                            new Mul(getVarAddress(ins, 0, virtualStack, file),
+                                    getVarAddress(ins, 1, virtualStack, file),
+                                    getVarAddress(ins, 2, virtualStack, file))
+                    );
+                }
                 case ASSIGN -> {
-                    Optional<Integer> arg1 = getVarOnlyAddress(ins, 0, virtualStack);
+
+                    Optional<Integer> arg1 = getVarOnlyAddress(ins, 0, virtualStack, file);
                     if (arg1.isEmpty()) {
                         System.out.println();
                         throw new RuntimeException();
                     }
 
-                    Optional<Integer> arg2 = getVarOnlyAddress(ins, 1, virtualStack);
+                    Optional<Integer> arg2 = getVarOnlyAddress(ins, 1, virtualStack, file);
                     arg2.ifPresent(arg -> file.add_instructions(
                             new Mov(arg1.get(),
                                     arg
@@ -71,16 +74,16 @@ public class Translator {
                     if (arg2.isEmpty()) {
                         file.add_instructions(
                                 new Mov(getVarAddress(ins, 0, virtualStack, file),
-                                        ins.get(1).flatMap(Either::getRight).get()
+                                        ins.get(1).flatMap(Either::getLeft).get()
                                 )
                         );
                     }
                 }
                 case CALL -> {
-                    Optional<Integer> returnArgsAddress = getVarOnlyAddress(ins, 0, virtualStack);
+                    Optional<Integer> returnArgsAddress = getVarOnlyAddress(ins, 0, virtualStack, file);
 
                     // gather address of args
-                    int i = returnArgsAddress.isEmpty() ? 0 : 1;
+                    int i = 1;
                     ArrayList<Integer> varAddress = new ArrayList<>();
                     while (ins.get(i).isPresent()) {
                         varAddress.add(getVarAddress(ins, i, virtualStack, file));
@@ -109,16 +112,11 @@ public class Translator {
                             )
                     ));
                 }
-
-                case RETURN -> file.add_instructions(
-                        new Return(getVarAddress(ins, 0, virtualStack, file))
-                );
             }
         }
 
-        if (func.instructions()[func.instructions().length - 1].type() != InstructionType.RETURN) {
-            file.add_instructions(new Return(0));
-        }
+        // TODO: add a check to return if it's needed
+        file.add_instructions(new Return(0));
     }
 
     private static int getVarAddress(Instruction ins, int index, ArrayList<String> virtualStack, BytecodeFile file) {
@@ -127,11 +125,10 @@ public class Translator {
             Either<String, Integer> arg = ins.get(index).get();
 
             // args must be flipped
-            if (arg.getLeft().isPresent()) {
-                return -virtualStack.indexOf(arg.getLeft().get());
-            } else if (arg.getRight().isPresent()) {
-                Optional<Integer> lit = arg.getRight();
-                return -orCreateStack(lit.get(), virtualStack, file);
+            if (arg.getRight().isPresent()) {
+                return -virtualStack.indexOf(arg.getRight().get());
+            } else if (arg.getLeft().isPresent()) {
+                return -orCreateStack(arg.getLeft().get(), virtualStack, file);
             } else {
                 System.out.println("all variants of either are not valid");
                 throw new RuntimeException();
@@ -142,20 +139,15 @@ public class Translator {
         }
     }
 
-    private static Optional<Integer> getVarOnlyAddress(Instruction ins, int index, ArrayList<String> virtualStack) {
+    private static Optional<Integer> getVarOnlyAddress(Instruction ins, int index, ArrayList<String> virtualStack, BytecodeFile file) {
 
         if (ins.get(index).isPresent()) {
             Either<String, Integer> arg = ins.get(index).get();
 
             // args must be flipped
-            if (arg.getLeft().isPresent()) {
-                int adr = virtualStack.indexOf(arg.getLeft().get());
-                if (adr == -1) {
-                    System.out.printf("var %s is not found on stack\n", arg.getLeft().get());
-                    throw new RuntimeException();
-                }
-                return Optional.of(-adr);
-            } else if (arg.getRight().isPresent()) {
+            if (arg.getRight().isPresent()) {
+                return Optional.of(-virtualStack.indexOf(arg.getRight().get()));
+            } else if (arg.getLeft().isPresent()) {
                 return Optional.empty();
             } else {
                 System.out.println("all variants of either are not valid");

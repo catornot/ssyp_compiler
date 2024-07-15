@@ -2,21 +2,19 @@ package Parsing;
 
 import java.util.Optional;
 
-public class Either<L, R> {
+public class Either<R,L> {
     private final L left;
     private final R right;
 
+    public static <L,R> Either<L,R> left(L left) {
+        return new Either(left, null);
+    }
+    public static <L,R> Either<L,R> right(R right) {
+        return new Either(null, right);
+    }
     private Either(L left, R right) {
         this.left = left;
         this.right = right;
-    }
-
-    public static <L, R> Either<L, R> left(L left) {
-        return new Either(left, null);
-    }
-
-    public static <L, R> Either<L, R> right(R right) {
-        return new Either(null, right);
     }
 
     public Optional<L> getLeft() {

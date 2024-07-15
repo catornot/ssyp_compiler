@@ -26,11 +26,12 @@ public class Parser {
                     end = k + 1;
                     break;
                 }
-            } else if (InFunc && prevToken.equals("F_NAME") && thisToken.equals(func_name)) {
+            } else if (InFunc && tokens.get(k - 2).equals("#") && prevToken.equals("F_NAME") &&
+                    thisToken.equals(func_name)) {
                 InDesireFunc = true;
             }
         }
-        return tokens.subList(begin, end + 1);
+        return tokens.subList(begin, end);
     }
 
     int countOfVars(List<String> tokens) {
@@ -44,12 +45,12 @@ public class Parser {
             {
                 InVars = true;
             } else if (thisToken.equals("#") && nextToken.equals("F_VARS_END")) {
-                InVars = false;
+                return count;
             } else if (nextToken.equals("@") && InVars) {
                 count++;
             }
             }
-        return count;
+        return 0;
     }
 
     Variable[] createVarsList(String func_name) {
@@ -65,13 +66,13 @@ public class Parser {
             {
                 InVars = true;
             } else if (thisToken.equals("#") && nextToken.equals("F_VARS_END")) {
-                InVars = false;
+                return variables;
             } else if (thisToken.equals("@") && InVars) {
                 variables[index] = new Variable(tokens.get(k + 2), nextToken);
                 index++;
             }
         }
-        return variables;
+        return new Variable[0];
     }
 
     int countOfArgs(List<String> tokens) {
@@ -90,7 +91,7 @@ public class Parser {
                 count++;
             }
         }
-        return count;
+        return 0;
     }
 
     Variable[] createArgsList(String func_name) {
@@ -112,7 +113,7 @@ public class Parser {
                 index++;
             }
         }
-        return arguments;
+        return new Variable[0];
     }
 
     int countOfInstruction(List<String> tokens) {

@@ -14,7 +14,7 @@ public record Function(String name, Variable[] arguments, Variable[] locals, Ins
             vars[k] = locals[k].toString();
         }
         for (int k = 0; k < instructs.length; k++) {
-            instructs[k] = instructions[k].toString();
+            instructs[k] = instructions[k] != null ? instructions[k].toString() : String.format("ERR %d %d", k, instructs.length);
         }
         return String.format("""
                         Function %s:

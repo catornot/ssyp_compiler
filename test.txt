@@ -16,3 +16,14 @@
 #= x z;
 #F_BODY_END;
 #F_END;
+#F_BEGIN;
+#F_NAME main;
+#F_ARGS_BEGIN;
+@Int x;
+#F_ARGS_END;
+#F_BODY_BEGIN;
+#IF = x #0;
+#F_RETURN #1;
+#ENDIF;
+#F_BODY_END;
+#F_END;

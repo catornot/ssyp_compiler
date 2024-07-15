@@ -1,3 +1,4 @@
+import Backup.Lexerold;
 import Parsing.Function;
 import Parsing.Parser;
 import Translator.Translator;
@@ -7,7 +8,8 @@ import java.util.List;
 
 public class Test {
     public static void main(String[] args) {
-        List<String> tokens = Lexer.tokenizeFromFile("test.txt");
+        Lexerold lexerold = new Lexerold(new String[] {"#", ";", "@"});
+        List<String> tokens = lexerold.getTokens("test.txt");
         Parser parser = new Parser(tokens);
         Function[] functions = parser.getFunctions();
         for (Function function: functions) {

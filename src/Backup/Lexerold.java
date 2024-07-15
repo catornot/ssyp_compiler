@@ -5,27 +5,28 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class Lexer {
+public class Lexerold {
     private String code = null;
     private final String[] key_combs;
     public String[] separators = {" ", "\n", "  "};
     public Boolean DO_STRIP = true;
-    public Lexer(String[] key_combs) {
+    public Lexerold(String[] key_combs) {
         this.key_combs = key_combs;
     }
 
 
     public Stream<String> tokenize() {
-        ArrayList<String> lexemes = new ArrayList<>(), code_fragments = new ArrayList<>();
+        ArrayList<String> lexemes = new ArrayList<>(), code_fragments;
         lexemes.add(this.code);
         for (String sep: this.separators) {
-            for (String elm: lexemes) {
+            code_fragments = (ArrayList<String>) lexemes.clone();
+            lexemes.clear();
+            for (String elm: code_fragments) {
                 if (elm != null) {
-                    Collections.addAll(code_fragments, elm.split(sep));
+                    Collections.addAll(lexemes, elm.split(sep));
                 }
             }
         }
-        lexemes = code_fragments;
         for (String comb: this.key_combs) {
             for (int k = 0; k < lexemes.size(); k++) {
                 String lexeme = lexemes.get(k);
@@ -45,7 +46,6 @@ public class Lexer {
     }
 
     public List<String> getTokens(String filename) {
-        String text = null;
         ArrayList<String> lines = new ArrayList<>();
         try {
             Scanner scanner = new Scanner(new File(filename));
@@ -53,11 +53,11 @@ public class Lexer {
                 lines.add(scanner.nextLine().trim());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Ошибка чтения файла.");
         }
-        Lexer lexer = new Lexer(
+        Lexerold lexer = new Lexerold(
                 this.key_combs
-                );
+        );
         lexer.code = String.join("\n", lines);
         return lexer.tokenize().toList();
     }

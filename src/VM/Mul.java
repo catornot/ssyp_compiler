@@ -5,7 +5,7 @@ public class Mul implements Instruction {
     private final int offsetRight;
     private final int destination;
 
-    Mul(int offsetLeft, int offsetRight, int destination) {
+    Mul(int destination, int offsetLeft, int offsetRight) {
         this.destination = destination;
         this.offsetLeft = offsetLeft;
         this.offsetRight = offsetRight;

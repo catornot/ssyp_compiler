@@ -172,9 +172,9 @@ public class Translator {
 
         if (pos == -1) {
             virtualStack.add("#" + literal); // literals will have a # before them
-            pos = virtualStack.size() - 1;
+            pos = (virtualStack.size()) - 1;
+            file.add_instructions(new Set(-pos, literal));
         }
-        file.add_instructions(new Set(pos, literal));
         return pos;
     }
 }

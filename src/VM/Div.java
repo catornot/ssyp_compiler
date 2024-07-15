@@ -5,7 +5,7 @@ public class Div implements Instruction {
     private final int offsetRight;
     private final int destination;
 
-    Div(int offsetLeft, int offsetRight, int destination) {
+    Div(int destination, int offsetLeft, int offsetRight) {
         this.destination = destination;
         this.offsetLeft = offsetLeft;
         this.offsetRight = offsetRight;

@@ -5,7 +5,7 @@ public class Sub implements Instruction {
     private final int offsetRight;
     private final int destination;
 
-    Sub(int offsetLeft, int offsetRight, int destination) {
+    Sub(int destination, int offsetLeft, int offsetRight) {
         this.destination = destination;
         this.offsetLeft = offsetLeft;
         this.offsetRight = offsetRight;

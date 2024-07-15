@@ -122,9 +122,10 @@ public class Parser {
         for (int k = 1; k < tokens.size(); k++) {
             if (tokens.get(k - 1).equals("#") && tokens.get(k).equals("F_BODY_BEGIN")) {
                 InBody = true;
+                k += 2;  // Костыль мешающий расширяемости.
             } else if (tokens.get(k - 1).equals("#") && tokens.get(k).equals("F_BODY_END")) {
                 return count;
-            } else if (InBody && tokens.get(k - 1).equals("#")) {
+            } else if (InBody && tokens.get(k - 1).equals(";")) {
                 count++;
             }
         }

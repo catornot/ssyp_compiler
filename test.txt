@@ -1,0 +1,18 @@
+#F_BEGIN;
+#F_NAME foo;
+#F_ARGS_BEGIN;
+@Int a;
+@Int b;
+#F_ARGS_END;
+#F_VARS_BEGIN;
+@Int x;
+@Int y;
+@Int z;
+#F_VARS_END;
+#F_BODY_BEGIN;
+#+ z x y;
+#* z x z;
+#* z y z;
+#= x z;
+#F_BODY_END;
+#F_END;

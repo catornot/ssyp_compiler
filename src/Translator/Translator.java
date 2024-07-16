@@ -226,7 +226,8 @@ public class Translator {
         if (pos == -1) {
             virtualStack.add("#" + literal); // literals will have a # before them
             pos = (virtualStack.size()) - 1;
-            file.add_instructions(new Set(-pos, literal));
+          
+            instructions.add(new Set(-pos, literal));
         }
         
         return pos;

@@ -3,6 +3,7 @@ package VM;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 public class VmRuntime {
@@ -10,18 +11,21 @@ public class VmRuntime {
     private final List<Pair<String, Integer>> callStack;
     private final int endInstruction = Integer.MAX_VALUE;
     private final HashMap<String, List<Instruction>> instructions = new HashMap<>();
-    private final boolean IsDebugging;
+    private final boolean isDebugging;
     private final HashMap<Integer, Integer[]> heap = new HashMap<>();
     private List<Instruction> currentInstructions;
     private String currentFunctionName = "main";
     private int stackBase;
+    private int stackBottom;
     private int currentInstruction = 0;
-    private int thisKey = 1;
+    private int thisKey = 0xFFF;
+
+    private final ConservativeGC gc;
 
     VmRuntime(InputReader reader, int size, boolean isDebugging) {
         this.stack = new ArrayList<>(size + 1);
         this.callStack = new ArrayList<>(size + 1);
-        this.IsDebugging = isDebugging;
+        this.isDebugging = isDebugging;
 
 
         for (int i : IntStream.range(0, size + 1).toArray()) {
@@ -30,6 +34,7 @@ public class VmRuntime {
 
         this.stack.set(size, this.endInstruction);
         this.stackBase = size - 1;
+        this.stackBottom = size - 1;
 
         while (reader.hasNext()) {
             Pair<String, ArrayList<Instruction>> pair = reader.nextFunction();
@@ -43,6 +48,8 @@ public class VmRuntime {
 
         this.callStack.add(new Pair<>(currentFunctionName, this.currentInstruction));
         this.currentInstructions = this.instructions.get(currentFunctionName);
+
+        this.gc = new ConservativeGC();
     }
 
     public void run() {
@@ -53,7 +60,7 @@ public class VmRuntime {
     }
 
     private void runNext() {
-        if (this.IsDebugging)
+        if (this.isDebugging)
             this.currentInstructions.get(this.currentInstruction).println(this);
 
         this.currentInstructions.get(this.currentInstruction).execute(this);
@@ -61,11 +68,13 @@ public class VmRuntime {
     }
 
     public int stackAt(int offset) {
+        this.stackBottom = Math.min(this.stackBottom, this.stackBase + offset);
         return this.stack.get(this.stackBase + offset);
     }
 
     public void setStackAt(int offset, int value) {
         int stackField = this.stackBase + offset;
+        this.stackBottom = Math.min(this.stackBottom, stackField);
 
         this.stack.set(stackField, value);
     }
@@ -93,6 +102,8 @@ public class VmRuntime {
     }
 
     public void returnWith(int obj) {
+        this.stackBottom = this.stackBase;
+
         if (this.stackAt(1) == this.endInstruction || this.callStack.size() == 1) {
             this.currentInstruction = this.currentInstructions.size();
             this.stackBase = this.stack.size() - 1;
@@ -108,6 +119,8 @@ public class VmRuntime {
             this.setStackAt(1, obj);
             this.stackBase = base;
         }
+
+        this.gc.cleanupHeap(this, obj);
     }
 
     public void jumpBy(int offset) {
@@ -136,7 +149,23 @@ public class VmRuntime {
         return heap.get(key);
     }
 
+    public void DestroyArray(int key) {
+        heap.remove(key);
+    }
+
     public int getInstructionNumber() {
         return this.currentInstruction;
+    }
+
+    public boolean isDebugging() {
+        return this.isDebugging;
+    }
+
+    public List<Integer> getRawStackView() {
+        return this.stack.subList(this.stackBottom, this.stack.size());
+    }
+
+    public Set<Integer> getRawHeapPages() {
+        return this.heap.keySet();
     }
 }

@@ -62,6 +62,22 @@ public class Extern implements Instruction {
             return;
         }
 
+        if (runtime.getCurrentFunctionName().equals("range")) {
+            int size, rangeOffset, value;
+
+            size = runtime.stackAt(-1) - runtime.stackAt(0);
+            rangeOffset = runtime.createNewArray(size);
+            value = runtime.stackAt(0);
+
+            for (int k = 0; k < size; k++) {
+                runtime.updateArray(rangeOffset, k, value);
+                value += runtime.stackAt(-2);
+            }
+
+            runtime.returnWith(rangeOffset);
+            return;
+        }
+
         runtime.returnWith(0);
     }
 

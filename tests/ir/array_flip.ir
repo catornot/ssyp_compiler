@@ -56,6 +56,8 @@
         @Int x;
     #F_VARS_END;
     #F_BODY_BEGIN;
+        #F_RETURN x;
+    
         #create_n_array arr #5;
         #[] arr #0 #1;
         #[] arr #1 #2;

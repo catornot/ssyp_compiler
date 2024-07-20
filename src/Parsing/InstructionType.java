@@ -17,5 +17,9 @@ public enum InstructionType {
     WHILE_BEGIN,
     WHILE_END,
     BREAK,
-    CONTINUE
+    CONTINUE,
+    STRUCT_ACCESS,
+    STRUCT_ASSIGN,
+    FOR,
+    FOR_END
 }

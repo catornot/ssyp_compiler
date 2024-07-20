@@ -1,6 +1,6 @@
 package VM;
 
-public class Set implements Instruction {
+public class Set<I extends Number> implements Instruction {
     private final int offset;
     private final int value;
 

@@ -48,7 +48,7 @@ public class InputReader {
                     func.add(new Div(reader.nextInt(), reader.nextInt(), reader.nextInt()));
                     break;
                 case "SET":
-                    func.add(new Set(reader.nextInt(), reader.nextInt()));
+                    func.add(new Set<Number>(reader.nextInt(), reader.nextInt()));
                     break;
                 case "MOV":
                     func.add(new Mov(reader.nextInt(), reader.nextInt()));

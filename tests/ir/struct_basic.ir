@@ -1,0 +1,26 @@
+#S_BEGIN;
+    #S_NAME BasicStruct;
+    #S_VARS_BEGIN;
+        @Int x;
+        @Int y;
+    #S_VARS_END;
+#S_END;
+
+#F_BEGIN;
+    #F_NAME main;
+    #F_ARGS_BEGIN;
+
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+        @BasicStruct struct;
+        @Int tmp;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #<- struct x #1;
+        #<- struct y #5;
+        #-> struct y tmp;
+
+        #print_array #1 struct;
+        #F_RETURN tmp;
+    #F_BODY_END;
+#F_END;

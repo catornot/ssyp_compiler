@@ -2,16 +2,13 @@ package Translator;
 
 import Parsing.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public class Translator {
-    public static void translate(Function[] functions, BytecodeFile file) {
-        for (Function func : functions) {
-            generateFunction(func, file);
+    public static void translate(Program prog, BytecodeFile file) {
+        for (Function func : prog.functions()) {
+            generateFunction(func, prog.structs(), file);
         }
 
         file.add_func("print");
@@ -25,9 +22,17 @@ public class Translator {
         file.add_func("cprint_array");
         file.add_instructions(new Extern());
         file.add_instructions(new Return(0));
+      
+        file.add_func("len");
+        file.add_instructions(new Extern());
+        file.add_instructions(new Return(0));
+
+        file.add_func("range");
+        file.add_instructions(new Extern());
+        file.add_instructions(new Return(0));
     }
 
-    private static void generateFunction(Function func, BytecodeFile file) {
+    private static void generateFunction(Function func, Struct[] structs, BytecodeFile file) {
         ArrayList<String> virtualStack = new ArrayList<>();
         virtualStack.addAll(Arrays.stream(func.arguments()).map(Variable::name).toList());
         virtualStack.addAll(Arrays.stream(func.locals()).map(Variable::name).toList());
@@ -42,8 +47,51 @@ public class Translator {
         ArrayList<BytecodeInstruction> instructions = new ArrayList<>();
 
         for (Variable local : func.locals()) {
-            if (local.type()[0].equals("Array")) {
-                instructions.add(new CreateArray(-virtualStack.indexOf(local.name()), Integer.parseInt(local.type()[1])));
+            if (local.type()[0].equals("Array") && local.type()[1].equals("#")) {
+                String lit = STR."#\{local.type()[2]}";
+                if (!virtualStack.contains(lit)) {
+                    virtualStack.add(lit); // literals will have a # before them
+                    instructions.add(new Set(-(virtualStack.size() - 1), Integer.parseInt(local.type()[2])));
+                }
+            }
+        }
+
+        for (Variable local : func.locals()) {
+            if (local.type().length < 2) {
+                continue;
+            }
+
+            if (local.type()[0].equals("Array") && local.type()[1].equals("#")) {
+                instructions.add(new CreateArray(
+                        -virtualStack.indexOf(local.name()),
+                        -orCreateStack(Integer.parseInt(local.type()[2]), virtualStack, instructions))
+                );
+
+            } else if (local.type()[0].equals("Array")
+                    && Arrays.stream(func.arguments()).anyMatch(arg -> arg.type()[0].equals("Array") && arg.name().equals(local.type()[1]))) {
+
+                int lenPos = -virtualStack.indexOf(STR."#\{local.type()[1]}");
+                if (lenPos == 1) {
+                    virtualStack.add(STR."#\{local.type()[1]}");
+                    lenPos = -(virtualStack.size() - 1);
+
+                    long argIndex = Arrays.stream(func.arguments()).takeWhile(arg -> arg.type()[0].equals("Array") && arg.name().equals(local.type()[1])).count() - 1;
+
+                    // get size of args array
+                    instructions.add(new Mov(-(int) argIndex, -(virtualStack.size() + 1)));
+                    instructions.add(new Call("len", -virtualStack.size()));
+                    instructions.add(new Mov(-virtualStack.size(), lenPos));
+                }
+
+                instructions.add(new CreateArray(-virtualStack.indexOf(local.name()), lenPos));
+            } else if (local.type()[0].equals("Array")) {
+                if (Arrays.stream(func.arguments()).noneMatch(variable -> variable.name().equals(local.type()[1]))) {
+                    System.out.println(STR."var \{local.type()[1]} doesn't exists in arguements");
+                }
+
+                instructions.add(new CreateArray(-virtualStack.indexOf(local.name()), -virtualStack.indexOf(local.type()[1])));
+            } else if (Arrays.stream(structs).anyMatch(struct -> struct.name().equals(local.type()[0]))) {
+                // TODO: error handling?
             }
         }
 
@@ -170,6 +218,9 @@ public class Translator {
             }
 
             case ELIF -> {
+                instructions.add(new Jump(CompareTypes.NoCmp, 0, 0, 0));
+                Block.LastIf(blocks).addJmpInfo(instructions.size() - 1);
+
                 ins.get(0).flatMap(Either::getLeft).ifPresentOrElse(cmpType -> instructions.add(
                         new Jump(CompareTypes.fromSymbol(cmpType).invert(),
                                 getVarAddress(ins, 1, virtualStack, instructions),
@@ -181,10 +232,7 @@ public class Translator {
                     throw new RuntimeException();
                 });
 
-                blocks.getLast().mid.add(instructions.size() - 1);
-
-                instructions.add(new Jump(CompareTypes.NoCmp, 0, 0, 0));
-                blocks.getLast().addJmpInfo(instructions.size() - 1);
+                Block.LastIf(blocks).mid.add(instructions.size() - 1);
             }
 
             case ELSE -> {
@@ -234,6 +282,135 @@ public class Translator {
                             getVarAddress(ins, 2, virtualStack, instructions)
                     ));
                 }
+            }
+
+            case WHILE_BEGIN -> {
+                ins.get(0).flatMap(Either::getLeft).ifPresentOrElse(cmpType -> instructions.add(
+                        new Jump(CompareTypes.fromSymbol(cmpType).invert(),
+                                getVarAddress(ins, 1, virtualStack, instructions),
+                                getVarAddress(ins, 2, virtualStack, instructions),
+                                Integer.MAX_VALUE
+                        )
+                ), () -> {
+                    System.out.println("While should have a cmp operand");
+                    throw new RuntimeException();
+                });
+
+                blocks.add(new Block(instructions.size() - 1, false));
+            }
+
+            case WHILE_END, FOR_END -> {
+                blocks.getLast().end = instructions.size();
+                blocks.getLast().fixWhileJumps(instructions);
+                instructions.add(
+                        new Jump(CompareTypes.NoCmp,
+                                0,
+                                0,
+                                Block.LastWhile(blocks).start
+                        )
+                );
+                blocks.removeLast();
+            }
+
+            case BREAK -> {
+                instructions.add(
+                        new Jump(CompareTypes.NoCmp,
+                                0,
+                                0,
+                                Integer.MAX_VALUE
+                        )
+                );
+
+                assert Block.LastWhile(blocks) != null;
+                Block.LastWhile(blocks)
+                        .breaks.add(instructions.size() - 1);
+            }
+
+            case CONTINUE -> {
+                instructions.add(
+                        new Jump(CompareTypes.NoCmp,
+                                0,
+                                0,
+                                Integer.MAX_VALUE
+                        )
+                );
+
+                assert Block.LastWhile(blocks) != null;
+                Block.LastWhile(blocks).continues.add(instructions.size() - 1);
+            }
+
+            case FOR -> {
+                // Для Optional
+                if (ins.get(0).isPresent()) {
+                    if (ins.get(0).get().getLeft().isEmpty()) {
+                        throw new RuntimeException();
+                    }
+                } else {
+                    throw new RuntimeException();
+                }
+                if (ins.get(1).isPresent()) {
+                    if (ins.get(1).get().getLeft().isPresent()) {
+                        if (!ins.get(1).get().getLeft().get().equals("IN")) {
+                            System.out.println("Отсутствует IN в FOR.");
+                            throw new RuntimeException();
+                        }
+                    } else {
+                        throw new RuntimeException();
+                    }
+                } else {
+                    throw new RuntimeException();
+                }
+                if (!(ins.get(2).isPresent() || ins.get(2).get().getLeft().isPresent())) {
+                    throw new RuntimeException();
+                }
+                // SETЫ
+                String var_name = STR."##\{virtualStack.size()}";
+                if (!virtualStack.contains(var_name)) {
+                    virtualStack.add(var_name);
+                    instructions.add(new Set(
+                                    -virtualStack.indexOf(var_name),
+                                    0
+                            )
+                    );
+                }
+                if (!virtualStack.contains("##ONE")) {
+                    virtualStack.add("##ONE");
+                }
+                instructions.add(new Set(
+                        -virtualStack.indexOf("##ONE"),
+                        1
+                ));
+                String array_length_name = STR."##\{ins.get(2).get().getLeft().get()}_LENGTH";
+                if (!virtualStack.contains(array_length_name)) {
+                    virtualStack.add(array_length_name);
+                }
+
+                instructions.add(new Mov(-virtualStack.indexOf(ins.get(2).get().getLeft().get()), -(virtualStack.size() + 1)));
+                instructions.add(new Call("len", -virtualStack.size()));
+                instructions.add(new Mov(-virtualStack.size(), -virtualStack.indexOf(array_length_name)));
+
+                Collections.addAll(virtualStack, "#", "#");
+                // WHILE + ADD + ARRAY_OUT
+                instructions.add(
+                        new Jump(CompareTypes.GreaterEqual,
+                                -virtualStack.indexOf(var_name),
+                                -virtualStack.indexOf(array_length_name),
+                                Integer.MAX_VALUE
+                        )
+                );
+                blocks.add(new Block(instructions.size() - 1, false));
+                instructions.add(
+                        new ArrayOut(-virtualStack.indexOf(ins.get(2).get().getLeft().get()),
+                                -virtualStack.indexOf(var_name),
+                                -virtualStack.indexOf(ins.get(0).get().getLeft().get())
+                        )
+                );
+                instructions.add(
+                        new Add(-virtualStack.indexOf(var_name),
+                                -virtualStack.indexOf(var_name),
+                                -virtualStack.indexOf("##ONE")
+                        )
+                );
             }
         }
     }

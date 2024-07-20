@@ -1,12 +1,12 @@
 #F_BEGIN;
     #F_NAME zoo;
     #F_ARGS_BEGIN;
-        @Array x Int zoo_arr;
+        @Array x Int *;
     #F_ARGS_END;
     #F_VARS_BEGIN;
     #F_VARS_END;
     #F_BODY_BEGIN;
-        #print_string zoo_arr;
+        #print_string *;
     #F_BODY_END;
 #F_END;
 
@@ -15,6 +15,7 @@
     #F_ARGS_BEGIN;
     #F_ARGS_END;
     #F_VARS_BEGIN;
+        @Array #3 Int zoo_arr;
         @Array #3 Int zoo_arr;
     #F_VARS_END;
     #F_BODY_BEGIN;

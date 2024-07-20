@@ -74,7 +74,7 @@ public class Extern implements Instruction {
             rangeOffset = runtime.createNewArray(size);
             value = runtime.stackAt(0);
 
-            for (int k = 0; k < size; k++) {
+            for (int k = 0; k < size && value < runtime.stackAt(-1); k++) {
                 runtime.updateArray(rangeOffset, k, value);
                 value += runtime.stackAt(-2);
             }

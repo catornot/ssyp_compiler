@@ -1,7 +1,7 @@
 package VM;
 
 public class VM {
-    static final boolean isDebugging = false;
+    static final boolean isDebugging = true;
 
     public static void main(String[] args) {
         if (args.length < 1) {

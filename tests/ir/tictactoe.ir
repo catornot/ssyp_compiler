@@ -1,0 +1,93 @@
+#F_BEGIN;
+    #F_NAME %;
+    #F_ARGS_BEGIN;
+        @int Dividend;
+        @Int Divisor;
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+        @Int out;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #/ out Dividend Divisor;
+        #* out out Divisor;
+        #- out Dividend out;
+        #F_RETURN out;
+    #F_BODY_END;
+#F_END;
+
+#F_BEGIN;
+    #F_NAME write_link;
+    #F_ARGS_BEGIN;
+        @Array x Array Int arr;
+        @Int link;
+        @Int index;
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #][ arr index link;
+    #F_BODY_END;
+#F_END;
+
+#F_BEGIN;
+    #F_NAME write_arr_at;
+    #F_ARGS_BEGIN;
+        @Array x Array Int arr;
+        @Int len;
+        @Int index;
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+        @Array x write_arr;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #write_link arr write_arr index;
+    #F_BODY_END;
+#F_END;
+
+#F_BEGIN;
+    #F_NAME fill_array;
+    #F_ARGS_BEGIN;
+        @Array len Int arr;
+        @Int c;
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+        @Array len Int range;
+        @Int i;
+        @Int len;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #len len arr;
+        #range range #0 len #1;
+
+        #FOR i IN range;
+            #[] arr i c;
+        #ENDFOR;
+    #F_BODY_END;
+#F_END;
+
+#F_BEGIN;
+    #F_NAME main;
+    #F_ARGS_BEGIN;
+    #F_ARGS_END;
+    #F_VARS_BEGIN;
+        @Array #9 Array #9 Int board;
+        @Array #1 Int range;
+        @Int array_link;
+        @Int i;
+        @Int even;
+    #F_VARS_END;
+    #F_BODY_BEGIN;
+        #range range #0 #9 #1;
+        #FOR i IN range;
+            #write_arr_at board #9 i;
+
+            #% even i #2;
+            #IF == even #0;
+                #][ board i array_link;
+                #fill array_link #23;
+            #ENDIF;
+        #ENDFOR;
+
+
+    #F_BODY_END;
+#F_END;
